@@ -1,5 +1,6 @@
 package com.couriersync.login.login_service.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
@@ -20,6 +21,7 @@ public class Usuario {
     // Relación muchos a uno con roles
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_rol", nullable = false)
+    @JsonIgnoreProperties({"rolPermisos", "hibernateLazyInitializer", "handler"})
     private Role rol;
 
     // Getters y Setters

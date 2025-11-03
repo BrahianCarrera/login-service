@@ -17,7 +17,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -58,8 +57,18 @@ public class SecurityConfig {
 
             // ⚙️ Configurar reglas de autorización
             .authorizeHttpRequests(auth -> auth
+                // ✅ Permitir Swagger sin autenticación
+                .requestMatchers(
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html"
+                ).permitAll()
+                
                 // ✅ Permitir login sin autenticación
                 .requestMatchers("/api/login/**").permitAll()
+
+                // ✅ Permitir el health check de Spring Actuator
+                .requestMatchers("/actuator/health").permitAll()
 
                 // 🔒 Solo ADMIN puede crear, actualizar y eliminar usuarios
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/**").hasRole("ADMIN")
@@ -71,16 +80,6 @@ public class SecurityConfig {
 
                 // 🔒 Solo ADMIN puede gestionar roles y permisos
                 .requestMatchers("/api/roles/**", "/api/permisos/**").hasRole("ADMIN")
-
-                // ✅ Permitir acceso libre a Swagger
-                .requestMatchers(
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
-                ).permitAll()
-
-                // ✅ Permitir el health check de Spring Actuator
-                .requestMatchers("/actuator/health").permitAll()
 
                 // 🔒 Todo lo demás requiere autenticación JWT
                 .anyRequest().authenticated()
@@ -97,26 +96,25 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ✅ Configuración de CORS segura
+    // ✅ Configuración de CORS simplificada para desarrollo
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 🔒 Configurar orígenes permitidos desde application.properties
-        // En lugar de "*" que es inseguro, usamos una lista específica de orígenes
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOrigins(origins);
+        // � TEMPORAL: Permitir todos los orígenes para desarrollo
+        // TODO: En producción, cambiar a lista específica de orígenes
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         
         // ✅ Métodos HTTP permitidos
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         
-        // ✅ Headers permitidos
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        // ✅ Headers permitidos - Permitir todos temporalmente
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         
         // ✅ Headers expuestos al cliente
-        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
         
-        // 🔒 Credenciales: true para permitir cookies/auth headers con orígenes específicos
+        // 🔒 Credenciales: true para permitir cookies/auth headers
         configuration.setAllowCredentials(true);
         
         // ⏱️ Tiempo de cache para preflight requests (1 hora)

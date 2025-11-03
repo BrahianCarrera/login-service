@@ -1,5 +1,6 @@
 package com.couriersync.login.login_service.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class Permiso {
 
     // Relación con rol_permiso
     @OneToMany(mappedBy = "permiso", cascade = CascadeType.ALL)
+    @JsonManagedReference("permiso-rolpermisos")
     private List<RolPermiso> rolPermisos;
 
     // Getters y Setters

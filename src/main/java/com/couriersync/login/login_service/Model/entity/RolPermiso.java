@@ -1,5 +1,6 @@
 package com.couriersync.login.login_service.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -14,11 +15,13 @@ public class RolPermiso {
     // Muchos a uno con roles
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_rol", nullable = false)
+    @JsonBackReference("rol-rolpermisos")
     private Role rol;
 
     // Muchos a uno con permisos
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_permiso", nullable = false)
+    @JsonBackReference("permiso-rolpermisos")
     private Permiso permiso;
 
     // Getters y Setters
