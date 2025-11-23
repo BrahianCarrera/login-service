@@ -24,7 +24,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    
+
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
@@ -38,60 +38,62 @@ public class SecurityConfig {
      * CSRF está deshabilitado intencionalmente porque:
      * 1. Esta es una API REST stateless que usa JWT para autenticación
      * 2. No maneja sesiones de usuario (SessionCreationPolicy.STATELESS)
-     * 3. Los tokens JWT no son vulnerables a CSRF ya que se envían en headers, no en cookies
-     * 4. Los clientes de esta API son aplicaciones móviles/web que manejan tokens explícitamente
+     * 3. Los tokens JWT no son vulnerables a CSRF ya que se envían en headers, no
+     * en cookies
+     * 4. Los clientes de esta API son aplicaciones móviles/web que manejan tokens
+     * explícitamente
      * 
-     * Para APIs REST con JWT, CSRF protection no es necesaria y puede causar problemas.
-     * Ver: https://spring.io/blog/2013/08/21/spring-security-3-2-0-rc1-highlights-csrf-protection/
+     * Para APIs REST con JWT, CSRF protection no es necesaria y puede causar
+     * problemas.
+     * Ver:
+     * https://spring.io/blog/2013/08/21/spring-security-3-2-0-rc1-highlights-csrf-protection/
      */
     @Bean
     @SuppressWarnings("java:S4502") // CSRF protection is intentionally disabled for stateless JWT API
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // ✅ Habilitar CORS
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // 🚫 Desactivar CSRF - Seguro para APIs REST stateless con JWT
-            // No usamos cookies de sesión, por lo tanto CSRF no aplica
-            .csrf(csrf -> csrf.disable())
+                // ✅ Habilitar CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-            // ⚙️ Configurar reglas de autorización
-            .authorizeHttpRequests(auth -> auth
-                // ✅ Permitir Swagger sin autenticación
-                .requestMatchers(
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
-                ).permitAll()
-                
-                // ✅ Permitir login sin autenticación
-                .requestMatchers("/api/login/**").permitAll()
+                // 🚫 Desactivar CSRF - Seguro para APIs REST stateless con JWT
+                // No usamos cookies de sesión, por lo tanto CSRF no aplica
+                .csrf(csrf -> csrf.disable())
 
-                // ✅ Permitir el health check de Spring Actuator
-                .requestMatchers("/actuator/health").permitAll()
+                // ⚙️ Configurar reglas de autorización
+                .authorizeHttpRequests(auth -> auth
+                        // ✅ Permitir Swagger sin autenticación
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html")
+                        .permitAll()
 
-                // 🔒 Solo ADMIN puede crear, actualizar y eliminar usuarios
-                .requestMatchers(HttpMethod.POST, "/api/usuarios/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("ADMIN")
-                
-                // ✅ Cualquier usuario autenticado puede consultar usuarios
-                .requestMatchers(HttpMethod.GET, "/api/usuarios/**").authenticated()
+                        // ✅ Permitir login sin autenticación
+                        .requestMatchers("/api/login/**").permitAll()
 
-                // 🔒 Solo ADMIN puede gestionar roles y permisos
-                .requestMatchers("/api/roles/**", "/api/permisos/**").hasRole("ADMIN")
+                        // ✅ Permitir el health check de Spring Actuator
+                        .requestMatchers("/actuator/health").permitAll()
 
-                // 🔒 Todo lo demás requiere autenticación JWT
-                .anyRequest().authenticated()
-            )
+                        // 🔒 Solo ADMIN puede crear, actualizar y eliminar usuarios
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("ADMIN")
 
-            // 🚫 Sin manejo de sesiones (stateless → JWT)
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                        // ✅ Cualquier usuario autenticado puede consultar usuarios
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").authenticated()
 
-            // 🧩 Agregar el filtro JWT antes del filtro estándar de Spring
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        // 🔒 Solo ADMIN puede gestionar roles y permisos
+                        .requestMatchers("/api/roles/**", "/api/permisos/**").hasRole("ADMIN")
+
+                        // 🔒 Todo lo demás requiere autenticación JWT
+                        .anyRequest().authenticated())
+
+                // 🚫 Sin manejo de sesiones (stateless → JWT)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // 🧩 Agregar el filtro JWT antes del filtro estándar de Spring
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -100,26 +102,27 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // � TEMPORAL: Permitir todos los orígenes para desarrollo
+
+        // TEMPORAL: Permitir todos los orígenes para desarrollo
         // TODO: En producción, cambiar a lista específica de orígenes
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        
+        // configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+
         // ✅ Métodos HTTP permitidos
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        
+
         // ✅ Headers permitidos - Permitir todos temporalmente
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        
+
         // ✅ Headers expuestos al cliente
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        
+
         // 🔒 Credenciales: true para permitir cookies/auth headers
         configuration.setAllowCredentials(true);
-        
+
         // ⏱️ Tiempo de cache para preflight requests (1 hora)
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
